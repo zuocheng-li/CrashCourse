@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.DS_Store
+
+# iOS — each dev regenerates with `npx cap sync ios`
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
+*.xcuserstate
+*.xcuserdatad
+xcuserdata/
+
+# Editor
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local

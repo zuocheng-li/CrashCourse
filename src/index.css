@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* ──────────────── Design tokens ──────────────── */
+:root {
+  --safe-top: env(safe-area-inset-top, 20px);
+  --safe-bottom: env(safe-area-inset-bottom, 24px);
+  --glass-bg: rgba(255, 255, 255, 0.18);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --accent: #e94560;
+  --accent-soft: rgba(233, 69, 96, 0.25);
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  background: #1a1a2e;
+  color: #fff;
+}
+
+/* ──────────────── Animated gradient BG ──────────────── */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 35%, #0f3460 60%, #e94560 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+}
+.app-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(233, 69, 96, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(15, 52, 96, 0.2), transparent);
+  pointer-events: none;
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ──────────────── Glass ──────────────── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius);
+}
+
+/* ──────────────── Shake animation (wrong answer) ──────────────── */
+@keyframes cardShake {
+  0%,100% { transform: translateX(0); }
+  15%     { transform: translateX(-8px); }
+  30%     { transform: translateX(8px); }
+  45%     { transform: translateX(-6px); }
+  60%     { transform: translateX(6px); }
+  75%     { transform: translateX(-3px); }
+}
+.card-shake {
+  animation: cardShake 0.5s ease-in-out;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.8);
+}
+
+/* ──────────────── Arrow bounce (tutorial) ──────────────── */
+@keyframes bounceRight { 0%,100%{ transform: translateX(0) } 50%{ transform: translateX(8px) } }
+@keyframes bounceLeft  { 0%,100%{ transform: translateX(0) } 50%{ transform: translateX(-8px) } }
+@keyframes bounceUp    { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-6px) } }
+.arrow-bounce-right { animation: bounceRight 1.5s ease-in-out infinite; }
+.arrow-bounce-left  { animation: bounceLeft 1.5s ease-in-out infinite; }
+.arrow-bounce-up    { animation: bounceUp 1.5s ease-in-out infinite; }
