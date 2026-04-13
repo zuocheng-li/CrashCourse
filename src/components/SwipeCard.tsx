@@ -11,23 +11,32 @@ import type { Question } from '../data/questions';
 const COMMIT_DISTANCE = 80;
 const FLICK_VELOCITY = 300;
 const EXIT_X = 420;
+const FAV_THRESHOLD = 60;
 
 interface Props {
   question: Question;
-  /** Called after the card exits. `correct` already evaluated. */
   onResult: (correct: boolean) => void;
   onFavorite: () => void;
+  isFavorited?: boolean;
+  shaking?: boolean;
 }
 
-export default function SwipeCard({ question, onResult, onFavorite }: Props) {
+const CORRECT_FLY_DURATION_MS = 280;
+
+export default function SwipeCard({ question, onResult, onFavorite, isFavorited = false, shaking = false }: Props) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const x = useMotionValue(0);
+  const y = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-12, 12]);
   const opacity = useTransform(
     x,
     [-EXIT_X, -150, 0, 150, EXIT_X],
     [0, 1, 1, 1, 0],
   );
+
+  const favIndicatorOpacity = useTransform(y, [0, -FAV_THRESHOLD], [0, 1]);
+  const favIndicatorScale = useTransform(y, [0, -FAV_THRESHOLD], [0.5, 1]);
+
   const committed = useRef(false);
 
   const canSubmit =
@@ -57,10 +66,10 @@ export default function SwipeCard({ question, onResult, onFavorite }: Props) {
       const vx = info.velocity.x;
       const dy = info.offset.y;
 
-      // Swipe up → favorite (snap back)
-      if (dy < -60 && Math.abs(dy) > Math.abs(dx)) {
+      if (dy < -FAV_THRESHOLD && Math.abs(dy) > Math.abs(dx)) {
         onFavorite();
         animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 });
+        animate(y, 0, { type: 'spring', stiffness: 500, damping: 30 });
         return;
       }
 
@@ -68,8 +77,8 @@ export default function SwipeCard({ question, onResult, onFavorite }: Props) {
       const isDistance = Math.abs(dx) > COMMIT_DISTANCE;
 
       if (!canSubmit || (!isFlick && !isDistance)) {
-        // Snap back to center
         animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 });
+        animate(y, 0, { type: 'spring', stiffness: 500, damping: 30 });
         return;
       }
 
@@ -79,12 +88,11 @@ export default function SwipeCard({ question, onResult, onFavorite }: Props) {
       const target = dx > 0 ? EXIT_X : -EXIT_X;
 
       if (correct) {
-        // Fly out, then callback
-        animate(x, target, { duration: 0.25, ease: 'easeOut' }).then(() =>
-          onResult(true),
-        );
+        animate(x, target, {
+          duration: CORRECT_FLY_DURATION_MS / 1000,
+          ease: [0.25, 0.46, 0.45, 0.94],
+        }).then(() => onResult(true));
       } else {
-        // Snap back then shake (parent handles shake via onResult(false))
         animate(x, 0, { type: 'spring', stiffness: 500, damping: 30 }).then(
           () => {
             committed.current = false;
@@ -92,20 +100,39 @@ export default function SwipeCard({ question, onResult, onFavorite }: Props) {
           },
         );
       }
+      animate(y, 0, { type: 'spring', stiffness: 500, damping: 30 });
     },
-    [canSubmit, evaluate, onResult, onFavorite, x],
+    [canSubmit, evaluate, onResult, onFavorite, x, y],
   );
 
   return (
     <div className="relative">
+      {/* Favorite indicator – floats above card during upward swipe */}
       <motion.div
-        className="glass overflow-hidden rounded-[20px] shadow-2xl cursor-grab active:cursor-grabbing select-none"
-        style={{ x, rotate, opacity, touchAction: 'pan-y' }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.9}
+        className="absolute -top-14 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/90 shadow-lg"
+        style={{ opacity: favIndicatorOpacity, scale: favIndicatorScale }}
+      >
+        <i className="fas fa-bookmark text-white text-sm" />
+        <span className="text-white text-sm font-semibold">
+          {isFavorited ? 'Unfavorite' : 'Favorite'}
+        </span>
+      </motion.div>
+
+      <motion.div
+        className={`glass overflow-hidden rounded-[20px] shadow-2xl cursor-grab active:cursor-grabbing select-none ${shaking ? 'card-shake' : ''}`}
+        style={{ x, y, rotate, opacity, touchAction: 'none' }}
+        drag
+        dragConstraints={{ left: 0, right: 0, top: -120, bottom: 0 }}
+        dragElastic={{ left: 0.9, right: 0.9, top: 0.5, bottom: 0 }}
         onDragEnd={handleDragEnd}
       >
+        {/* Favorite badge on card */}
+        {isFavorited && (
+          <div className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-amber-500/90 flex items-center justify-center shadow-md">
+            <i className="fas fa-bookmark text-white text-xs" />
+          </div>
+        )}
+
         {/* Header image */}
         <div className="h-28 relative bg-gradient-to-br from-[#0f3460]/90 to-[#e94560]/50 flex items-center justify-center overflow-hidden">
           <img
@@ -162,25 +189,19 @@ export default function SwipeCard({ question, onResult, onFavorite }: Props) {
       </motion.div>
 
       {/* Hints below card */}
-      {question.type === 'true_false' ? (
-        <div className="flex items-center justify-center gap-8 mt-6 text-white/60 text-sm">
-          <span>
-            <i className="fas fa-arrow-left mr-1" /> False
-          </span>
-          <span>
-            <i className="fas fa-arrow-up mr-1" /> Favorite
-          </span>
-          <span>
-            True <i className="fas fa-arrow-right ml-1" />
-          </span>
-        </div>
-      ) : (
-        <p className="text-center text-white/50 text-sm mt-4">
-          {selectedIndex === null
-            ? 'Pick one option, then swipe to submit.'
-            : 'Now swipe left or right to check your answer.'}
-        </p>
-      )}
+      <div className="flex items-center justify-center gap-6 mt-6 text-white/60 text-sm">
+        <span>
+          <i className="fas fa-arrow-left mr-1" />
+          {question.type === 'true_false' ? 'False' : 'Submit'}
+        </span>
+        <span>
+          <i className="fas fa-arrow-up mr-1" /> Favorite
+        </span>
+        <span>
+          {question.type === 'true_false' ? 'True' : 'Submit'}
+          <i className="fas fa-arrow-right ml-1" />
+        </span>
+      </div>
     </div>
   );
 }

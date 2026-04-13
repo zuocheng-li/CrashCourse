@@ -9,7 +9,7 @@ A Tinder-style North American driver's license exam prep app. Swipe to answer, g
 - **Tailwind CSS v4** — Styling
 - **Framer Motion** — Swipe card physics & animations
 - **Zustand** — State management
-- **Capacitor** — iOS native wrapper
+- **Capacitor** — iOS & Android native wrapper
 - **React Router** — Navigation
 
 ## Getting Started
@@ -47,6 +47,48 @@ Then in Xcode:
 
 > Free Apple ID limitation: app expires after 7 days, just re-Run to refresh.
 
+## Deploy to Android（生成真实 APK）
+
+同一套代码，先构建 Web 再同步到 Android 即可打包成可安装的安卓应用。
+
+**环境**：本机需安装 [Android Studio](https://developer.android.com/studio)（或至少 JDK 17+ 和 Android SDK）。
+
+```bash
+# 1. 构建 Web 并同步到双平台（iOS + Android）
+npm run cap:sync
+
+# 2. 用 Android Studio 打开（可选，用于调试或签名）
+npm run cap:android
+```
+
+### 生成可安装的 APK
+
+**方式一：命令行打 Debug 包（无需签名，可直接安装到手机/模拟器）**
+
+```bash
+npm run android:debug
+```
+
+生成的 APK 位置：`android/app/build/outputs/apk/debug/app-debug.apk`。  
+用数据线连接手机并开启「USB 调试」，或拖到模拟器里即可安装。
+
+**方式二：打 Release 包（上架或分发给他人）**
+
+1. 在 Android Studio 中打开项目：`npm run cap:android`
+2. **Build → Generate Signed Bundle / APK** → 选 **APK**（或 AAB 上架 Play 商店）
+3. 创建或选择 keystore，按向导完成签名  
+4. 完成后 APK 在 `android/app/release/` 或你选择的输出目录
+
+若要用命令行打 release（需先配置签名），可运行：
+
+```bash
+npm run android:release
+```
+
+未配置 signing 时可能失败，需在 `android/app/build.gradle` 的 `buildTypes.release` 中配置 `signingConfig`。
+
+---
+
 ## Project Structure
 
 ```
@@ -77,8 +119,7 @@ public/
 After cloning:
 ```bash
 npm install
-npm run build
-npx cap sync ios
-npx cap open ios
+npm run cap:sync
+npx cap open ios    # 或 npx cap open android
 ```
-Then set your own Apple ID in Xcode Signing & Capabilities → done.
+Then set your own Apple ID in Xcode Signing & Capabilities (iOS), or run `npm run android:debug` to get a debug APK (Android).

@@ -1,0 +1,49 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.13.2'
+        classpath 'com.google.gms:google-services:4.4.2'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    // Resolve Kotlin duplicate classes: stdlib 1.8+ already includes jdk7/jdk8; replace old split artifacts
+    configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.jetbrains.kotlin' &&
+                (details.requested.name == 'kotlin-stdlib-jdk7' || details.requested.name == 'kotlin-stdlib-jdk8')) {
+                details.useTarget("org.jetbrains.kotlin:kotlin-stdlib:1.8.22")
+                details.because("Use single kotlin-stdlib to avoid duplicate JDK7/JDK8 classes")
+            }
+        }
+    }
+}
+
+// Use Java 17 so the build works with JDK 17 (Capacitor uses 21 by default)
+subprojects { subproject ->
+    subproject.afterEvaluate {
+        if (subproject.plugins.hasPlugin('com.android.library') || subproject.plugins.hasPlugin('com.android.application')) {
+            subproject.android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+            subproject.android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

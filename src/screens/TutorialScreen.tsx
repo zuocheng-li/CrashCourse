@@ -1,29 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TUTORIAL_SLIDES, getTutorialVideoUrl } from '../data/tutorialSlides';
 import './TutorialScreen.css';
 
-const SLIDES = [
-  {
-    video: './tutorialVideos/swipe and  learn form wrong case.mov',
-    title: 'Swipe & Learn',
-    desc: 'Swipe to answer — wrong answers show real crash videos',
-  },
-  {
-    video: './tutorialVideos/review wrong question anytime.mov',
-    title: 'Review Anytime',
-    desc: 'Go back and review any question you got wrong',
-  },
-  {
-    video: './tutorialVideos/go. to profile to check progress.mov',
-    title: 'Track Progress',
-    desc: "Check your profile to see how you're doing",
-  },
-];
+const SLIDES = TUTORIAL_SLIDES;
 
 export default function TutorialScreen() {
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const didEmitFirstFramePlayingRef = useRef(false);
   const startXRef = useRef(0);
   const moveXRef = useRef(0);
   const draggingRef = useRef(false);
@@ -35,6 +21,7 @@ export default function TutorialScreen() {
     setCurrent(next);
   }, []);
 
+  // 当前页自动播放
   useEffect(() => {
     videoRefs.current.forEach((v, i) => {
       if (!v) return;
@@ -47,46 +34,47 @@ export default function TutorialScreen() {
     });
   }, [current]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    startXRef.current = e.touches[0].clientX;
-    draggingRef.current = true;
-    moveXRef.current = 0;
-  };
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!draggingRef.current) return;
-    moveXRef.current = e.touches[0].clientX - startXRef.current;
-  };
-  const onTouchEnd = () => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    if (moveXRef.current < -40) goTo(current + 1);
-    else if (moveXRef.current > 40) goTo(current - 1);
-    moveXRef.current = 0;
-  };
+  // 第一个视频开始播放时派发事件，App 再隐藏 Splash
+  const onFirstVideoCanPlay = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    if (current === 0) v.play().catch(() => {});
+  }, [current]);
+  const onFirstVideoPlaying = useCallback(() => {
+    if (didEmitFirstFramePlayingRef.current) return;
+    didEmitFirstFramePlayingRef.current = true;
+    window.dispatchEvent(new CustomEvent('tutorial-first-frame-playing'));
+  }, []);
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    startXRef.current = e.clientX;
+  const SWIPE_THRESHOLD = 40;
+  const handlePointerStart = useCallback((clientX: number) => {
+    startXRef.current = clientX;
     draggingRef.current = true;
     moveXRef.current = 0;
-    e.preventDefault();
-  };
-  const onMouseMove = (e: React.MouseEvent) => {
+  }, []);
+  const handlePointerMove = useCallback((clientX: number) => {
     if (!draggingRef.current) return;
-    moveXRef.current = e.clientX - startXRef.current;
-  };
-  const onMouseUp = () => {
+    moveXRef.current = clientX - startXRef.current;
+  }, []);
+  const handlePointerEnd = useCallback(() => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
-    if (moveXRef.current < -40) goTo(current + 1);
-    else if (moveXRef.current > 40) goTo(current - 1);
+    const dx = moveXRef.current;
     moveXRef.current = 0;
-  };
+    if (dx < -SWIPE_THRESHOLD) goTo(current + 1);
+    else if (dx > SWIPE_THRESHOLD) goTo(current - 1);
+  }, [current, goTo]);
+
+  const onTouchStart = (e: React.TouchEvent) => handlePointerStart(e.touches[0].clientX);
+  const onTouchMove = (e: React.TouchEvent) => handlePointerMove(e.touches[0].clientX);
+  const onTouchEnd = handlePointerEnd;
+  const onMouseDown = (e: React.MouseEvent) => { e.preventDefault(); handlePointerStart(e.clientX); };
+  const onMouseMove = (e: React.MouseEvent) => handlePointerMove(e.clientX);
+  const onMouseUp = handlePointerEnd;
 
   return (
     <div className="tutorial-page -mx-5 px-0 flex flex-col items-center justify-center min-h-[calc(100dvh-44px)]"
       style={{ gap: 0 }}
     >
-      {/* Video Carousel */}
       <div className="carousel-wrapper">
         <div
           className="carousel-track"
@@ -103,17 +91,20 @@ export default function TutorialScreen() {
             <div key={i} className="carousel-slide">
               <video
                 ref={(el) => { videoRefs.current[i] = el; }}
-                src={slide.video}
+                src={getTutorialVideoUrl(slide.video)}
                 muted
                 playsInline
                 loop
+                preload="auto"
+                autoPlay={i === 0}
+                onCanPlay={i === 0 ? onFirstVideoCanPlay : undefined}
+                onPlaying={i === 0 ? onFirstVideoPlaying : undefined}
               />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Dot indicators */}
       <div className="dot-indicators">
         {SLIDES.map((_, i) => (
           <span
@@ -124,13 +115,11 @@ export default function TutorialScreen() {
         ))}
       </div>
 
-      {/* Slide description */}
       <div className="slide-description">
         <h3>{SLIDES[current].title}</h3>
         <p>{SLIDES[current].desc}</p>
       </div>
 
-      {/* Bottom CTA */}
       <div className="flex flex-col items-center px-6 mt-4 w-full">
         <button
           onClick={() => navigate('/login')}

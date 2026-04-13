@@ -2,15 +2,11 @@
 
 /* ──────────────── Design tokens ──────────────── */
 :root {
-  --safe-top: env(safe-area-inset-top, 20px);
-  --safe-bottom: env(safe-area-inset-bottom, 24px);
   --glass-bg: rgba(255, 255, 255, 0.18);
   --glass-border: rgba(255, 255, 255, 0.35);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   --accent: #e94560;
-  --accent-soft: rgba(233, 69, 96, 0.25);
   --radius: 20px;
-  --radius-sm: 12px;
 }
 
 * { box-sizing: border-box; }
@@ -69,12 +65,6 @@ body {
 .card-shake {
   animation: cardShake 0.5s ease-in-out;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.8);
+  border-radius: var(--radius);
 }
 
-/* ──────────────── Arrow bounce (tutorial) ──────────────── */
-@keyframes bounceRight { 0%,100%{ transform: translateX(0) } 50%{ transform: translateX(8px) } }
-@keyframes bounceLeft  { 0%,100%{ transform: translateX(0) } 50%{ transform: translateX(-8px) } }
-@keyframes bounceUp    { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-6px) } }
-.arrow-bounce-right { animation: bounceRight 1.5s ease-in-out infinite; }
-.arrow-bounce-left  { animation: bounceLeft 1.5s ease-in-out infinite; }
-.arrow-bounce-up    { animation: bounceUp 1.5s ease-in-out infinite; }

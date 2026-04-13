@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CrashCourse</string>
+    <string name="title_activity_main">CrashCourse</string>
+    <string name="package_name">com.crashcourse.app</string>
+    <string name="custom_url_scheme">com.crashcourse.app</string>
+    <string name="attribution_media">Video and audio playback</string>
+</resources>

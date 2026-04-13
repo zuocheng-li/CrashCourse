@@ -80,7 +80,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   get progress() {
     const s = get();
     return s.questions.length > 0
-      ? Math.round(((s.currentIndex) / s.questions.length) * 100)
+      ? Math.round((s.currentIndex / s.questions.length) * 100)
       : 0;
   },
   get totalCorrect() {
